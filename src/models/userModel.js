@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema( {
         default:false
     },
     age: Number,
+    posts:{type:[],default:[]}
 }, { timestamps: true });
 
-module.exports = mongoose.model('AuthorizedUsers', userSchema)
+module.exports = mongoose.model('AuthenticatedUsers', userSchema)

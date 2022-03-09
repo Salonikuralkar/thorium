@@ -60,7 +60,18 @@ const updateUser = async function (req, res) {
   res.send({ status: true, data: updatedUser });
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+const postMessage=async function(req, res){
+ let userId=req.params.userId;
+let user=await userModel.findById(userId);
+if(!user) return res.send({status:false,msg:"No such user exists"})
 
+let updatedPosts=user.posts;
+let message=req.body.message;
+updatedPosts.push(message)
+let updatedData= await userModel.findOneAndUpdate({_id:userId},{$set:{posts:updatedPosts}},{new:true});
+res.send({status:true,msg:{updatedData}})  
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 const updateIsDelete = async function (req, res) {
   let user=req.params.userId; 
   let updatedUser = await userModel.findOneAndUpdate({ _id: user }, {$set:{isDeleted:true}}, {new:true});
@@ -71,4 +82,5 @@ module.exports.createUser = createUser;
 module.exports.getUserData = getUserData;
 module.exports.updateUser = updateUser;
 module.exports.loginUser = loginUser;
+module.exports.postMessage = postMessage;
 module.exports.updateIsDelete = updateIsDelete;
