@@ -1,9 +1,13 @@
 const express = require('express');
+const res = require('express/lib/response');
 const router = express.Router();
 const userController= require("../controllers/userController")
 const userMiddleware=require("../middleware/authentication")
 
-router.post("/users", userController.createUser  )
+//we will not use try-catch here to handle route paths errors
+// because: they doesn't stop the server and the error are not visible on terminal.
+
+router.post("/users", userController.createUser)
 
 router.post("/login", userController.loginUser)
 
