@@ -14,7 +14,7 @@ try{
     // validation of title
     let title=userInfo.title;
     if(!title) return res.status(400).send({status:false, message:"Please provide a title"})
-
+    
     userInfo.title = userInfo.title.trim();
     title=title.trim();
 

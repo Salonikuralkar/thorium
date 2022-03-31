@@ -29,9 +29,11 @@ try{
     // checking if we get any data from request body
     if(Object.keys(bookData).length==0) return res.status(400).send({status:false, message:"Please enter book details"})
 
+    //As subcategory is array of string type hence deleted subcategory from bookData as .trim() doesn't works on it 
     let subcategory=bookData.subcategory;
     delete bookData.subcategory;
 
+    //and checks for rest data if provided or not and also removed empty spaces if there
     let keys = Object.keys(bookData);
     for(let i=0; i<keys.length; i++){
         if(!(bookData[keys[i]])) return res.status(400).send({status:false, message:`Please provide proper ${keys[i]} to create`})
@@ -99,30 +101,32 @@ try{
 
         return res.status(200).send({status:true,message: 'Books list', data:books})
     }
-
+    //checks for proper filters provided from query params
     let keys = Object.keys(filter);
     for(let i=0; i<keys.length; i++){
         if(!(filter[keys[i]])) return res.status(400).send({status:false, message:"Please provide proper filters"})
         filter[keys[i]]=filter[keys[i]].trim();
         if(!(filter[keys[i]])) return res.status(400).send({status:false, message:"Please provide proper filters"})
-
     }
+
+    //checks if userId is provided and a valid one
     if(keys.includes("userId")){
         let userId = filter.userId
         let checkObjectId = isValidObjectId(userId)
         if(!checkObjectId) return res.status(400).send({status:false, message: "Please enter a valid userId"})
     }
 
+    //checks if subcategory is provided
     if(keys.includes("subcategory")){
         let array=filter.subcategory;
         delete filter.subcategory;
-
+        //if other filters are provided with subcategory 
         if(Object.keys(filter).length!=0){
         let books=await BooksModel.find({$and:[{isDeleted:false}, filter,{subcategory:{$in:array}}]}).select({_id:1, title:1, excerpt:1, userId:1, category:1, releasedAt:1, reviews:1}).sort({title:1})
         if(books.length==0) return res.status(404).send({status:false, message: "No Book found"})  
     
         return res.status(200).send({status:true,message: 'Books list', data:books})
-        }else{
+        }else{//if only subcategory is provided
             let books=await BooksModel.find({$and:[{isDeleted:false}, {subcategory:{$in:array}}]}).select({_id:1, title:1, excerpt:1, userId:1, category:1, releasedAt:1, reviews:1}).sort({title:1})
             if(books.length==0) return res.status(404).send({status:false, message: "No Book found"})  
         
@@ -180,14 +184,15 @@ try{
 
     //if no updations data is provided
     let details= req.body;
-    if(Object.keys(details).length==0) return res.status(400).send({status:true, message:'Please enter book details to update'}) 
+    if(Object.keys(details).length==0) return res.status(400).send({status:false, message:'Please enter book details to update'}) 
     
-    
+    //checks if subcategory is provided for updation
     let keys = Object.keys(details);
     if(keys.includes("subcategory")) {
         
         let subcategory=details.subcategory;
-        delete details.subcategory;  
+        delete details.subcategory;  //deleting subcategory from details
+        //checks for other details provided by user for updation 
         let keys1=Object.keys(details);
         for(let i=0; i<keys1.length; i++){
             if(!(details[keys1[i]])) return res.status(400).send({status:false, message:`Please provide proper ${keys1[i]} to update`})
@@ -195,19 +200,18 @@ try{
             if(!(details[keys1[i]])) return res.status(400).send({status:false, message:`Please provide proper ${keys1[i]} to update`})
         }
         details.subcategory=subcategory;
-    }else{
+    }else{//checks if subcategory is not provided for updation and checks for other details provided by user for updation 
         for(let i=0; i<keys.length; i++){
             if(!(details[keys[i]])) return res.status(400).send({status:false, message:`Please provide proper ${keys[i]} to update`})
             details[keys[i]]=details[keys[i]].trim();
             if(!(details[keys[i]])) return res.status(400).send({status:false, message:`Please provide proper ${keys[i]} to update`})
-
         }
-
     }
 
+    //checks if userId is provided in updation
     if(keys.includes("userId")){
         let userId = details.userId
-        let checkObjectId = isValidObjectId(userId)
+        let checkObjectId = isValidObjectId(userId)//checks for valid userId
         if(userId !== req.query.userId) return res.status(400).send({status: false, message: "Please update a book for the loggedIn user"})
         if(!checkObjectId) return res.status(400).send({status:false, message: "Please enter a valid userId"})
         let user = await UserModel.findOne({_id:userId});
@@ -222,7 +226,7 @@ try{
         let duplicateTitle= await BooksModel.findOne({title});
         if(duplicateTitle) return res.status(400).send({status:false, message:'title already exists'})
     }   
-    
+
     //checking duplicity of ISBN
     let ISBN=details.ISBN
     if(ISBN!=undefined){
@@ -233,6 +237,7 @@ try{
     let book= await BooksModel.findOne({_id:bookId, isDeleted:false})
         if(!book) return res.status(404).send({status:false, message:"No such book exists"})
 
+    //updating subcategory in existing subcategory and removing duplication in subcategory 
     keys=Object.keys(details)
     if(keys.includes("subcategory")){
         let array=details.subcategory.split(",");
@@ -251,11 +256,13 @@ try{
 
         if(Object.keys(details).length!=0)
         {
+            //first updated subcategory
             let updationDetails2= await BooksModel.findOneAndUpdate({_id:bookId, isDeleted:false},{subcategory:newArray},{new:true})
             if(!updationDetails2) return res.status(404).send({status:false,message:"Book not found"})
+            //then updated rest of the details
             let updationDetails3= await BooksModel.findOneAndUpdate({_id:bookId, isDeleted:false},details,{new:true})
             return res.status(200).send({status:true, message:'Success', data:updationDetails3})
-        }else{
+        }else{//when other details are not provided for updations and only subcategory is provided
             let updationDetails1= await BooksModel.findOneAndUpdate({_id:bookId, isDeleted:false},{subcategory:newArray},{new:true})
             if(!updationDetails1) return res.status(404).send({status:false,message:"Book not found"})
             return res.status(200).send({status:true, message:'Success', data:updationDetails1})
@@ -290,7 +297,7 @@ const deleteBooksByBookId= async function(req,res)
     
     let deleteReview= await ReviewModel.updateMany(
         {bookId:bookId, isDeleted:false}, {isDeleted:true},{new:true})
-    return res.status(200).send({status:false, message:'Book and Reviews are Deleted'})
+    return res.status(200).send({status:true, message:'Book and Reviews are Deleted'})
 
 }catch(error){
     return res.status(500).send({status:false, Error: error.message})
