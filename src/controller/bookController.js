@@ -31,7 +31,9 @@ try{
 
     //As subcategory is array of string type hence deleted subcategory from bookData as .trim() doesn't works on it 
     let subcategory=bookData.subcategory;
+    let reviews=bookData.reviews;
     delete bookData.subcategory;
+    delete bookData.reviews;
 
     //and checks for rest data if provided or not and also removed empty spaces if there
     let keys = Object.keys(bookData);
@@ -44,6 +46,7 @@ try{
     // destructuring to get all values in various variables
     let {title, excerpt, ISBN, category, userId, releasedAt} = bookData;
     bookData.subcategory=subcategory;
+    bookData.reviews=reviews;
 
     // validation which are must required
     if(!title) return res.status(400).send({status: false, message: "Please provide proper title to create."})
