@@ -1,24 +1,8 @@
 const BooksModel=require("../models/booksModel");
 //const UserModel=require("../models/userModel");
 const ReviewModel=require("../models/reviewModel");
+const validator=require("../validator/validator")
 const moment = require('moment')
-var ObjectId = require("mongoose").Types.ObjectId;
-
-const isValidObjectId= function (a){
-    if((ObjectId.isValid(a)))//checking for 12 bytes id in input value 
-    {  
-        let b =  (String)(new ObjectId(a))//converting input value in valid object Id
-        
-        if(b == a) //comparing converted object Id with input value
-        {       
-            return true
-        }else{
-                return false;
-            }
-    }else{
-        return false
-    }
-}
 
 const addReview=async function(req, res)
 {
@@ -26,15 +10,17 @@ const addReview=async function(req, res)
     
     //checking if bookId is valid
     let bookId=req.params.bookId;
-        let checkObjectId = isValidObjectId(bookId)
-        if(!checkObjectId) return res.status(400).send({status:false, message: "Please enter a valid bookId"})
-
+    if(!(validator.isValidObjectId(bookId))) return res.status(400).send({status:false, message: "Please enter a valid bookId in path params"})
 
     let review= req.body;
+
     //checking if user is providing review
-    if(Object.keys(review).length==0) return res.status(400).send({status:false, message:'Please add review'})
+    if(!(validator.isValid(review))) return res.status(400).send({status:false, message:'Please add review'})
 
     if(!(review.bookId))  return res.status(400).send({status:false, message:'Please add bookId'}) 
+    if(!(validator.isValidObjectId(review.bookId))) return res.status(400).send({status:false, message: "Please enter a valid bookId in request body"})
+    if(review.bookId!=bookId) return res.status(400).send({status:false, message:'Please add a review of the same bookId'}) 
+
     //adding mandatory reviewedAt field to review 
     if(!(review.reviewedAt)){
         review.reviewedAt = Date.now();//if user not providing reviewedAt field then adding current date to it
@@ -89,8 +75,7 @@ const updateReview= async function(req, res)
     try{
     //checking if bookId is valid
     let bookId=req.params.bookId;
-    let checkObjectId = isValidObjectId(bookId)
-    if(!checkObjectId) return res.status(400).send({status:false, message: "Please enter a valid bookId"})
+    if(!(validator.isValidObjectId(bookId))) return res.status(400).send({status:false, message: "Please enter a valid bookId"})
 
     //checking if book exists
     let books=await BooksModel.findOne({_id:bookId, isDeleted:false}).select({ISBN:0, __v:0});
@@ -98,8 +83,7 @@ const updateReview= async function(req, res)
 
     //checking if reviewId is valid
     let reviewId=req.params.reviewId;
-    let checkObjectId1 = isValidObjectId(reviewId)
-    if(!checkObjectId1) return res.status(400).send({status:false, message: "Please enter a valid reviewId"})
+    if(!(validator.isValidObjectId(reviewId))) return res.status(400).send({status:false, message: "Please enter a valid reviewId"})
 
     //checking if review exists
     let review1= await ReviewModel.findOne({_id:reviewId, isDeleted:false})
@@ -108,16 +92,16 @@ const updateReview= async function(req, res)
     //checking if review exists for the same book
     if(review1.bookId!=bookId) return res.status(400).send({status:false, message:'Please make sure that review belongs to the bookId as in params'})
     
-    let review=req.body;
-    if(Object.keys(review).length==0) return res.status(400).send({status:false, message:"Please enter review to update"})
+    if(Object.keys(req.body).length==0) return res.status(400).send({status:false, message:"Please enter review to update"})
     
+    if(req.body.isDeleted==true) return res.status(400).send({status:false, message:'You cannot delete a review while updating'})
     //validating rating range
-    if((review.rating)){
-    if(review.rating<1 || review.rating>5) return res.status(400).send({status:false, message:'rating can only be between 1 & 5'})
+    if((req.body.rating)){
+    if(req.body.rating<1 || req.body.rating>5) return res.status(400).send({status:false, message:'rating can only be between 1 & 5'})
     }
     //updating review
     let reviewUpdations=await ReviewModel.findOneAndUpdate(
-        {_id:reviewId, isDeleted:false},review,{new:true})
+        {_id:reviewId, isDeleted:false},req.body,{new:true})
     
     //extracting all the total reviews available for that book
     let totalReviews= await ReviewModel.find({bookId:bookId, isDeleted:false}).select({_id:1, bookId:1,reviewedBy:1,reviewedAt:1,rating:1,review:1})
@@ -137,8 +121,7 @@ const deleteReview=async function(req,res)
     try{
     //checking if bookId is valid
     let bookId=req.params.bookId;
-    let checkObjectId = isValidObjectId(bookId)
-    if(!checkObjectId) return res.status(400).send({status:false, message: "Please enter a valid bookId"})
+    if(!(validator.isValidObjectId(bookId))) return res.status(400).send({status:false, message: "Please enter a valid bookId"})
 
     //checking if book exists
     let books=await BooksModel.findOne({_id:bookId, isDeleted:false})
@@ -146,10 +129,16 @@ const deleteReview=async function(req,res)
 
     //checking if reviewId is valid
     let reviewId=req.params.reviewId;
-    let checkObjectId1 = isValidObjectId(reviewId)
-    if(!checkObjectId1) return res.status(400).send({status:false, message: "Please enter a valid reviewId"})
+    if(!(validator.isValidObjectId(reviewId))) return res.status(400).send({status:false, message: "Please enter a valid reviewId"})
 
     //checking if review exists
+    let review1= await ReviewModel.findOne({_id:reviewId, isDeleted:false})
+    if(!review1) return res.status(404).send({status:false, message:'No such review exists'})
+
+    //checking if review exists for the same book
+    if(review1.bookId!=bookId) return res.status(400).send({status:false, message:'Please make sure that review belongs to the bookId as in params'})
+    
+    //deleting review
     let deleteReview= await ReviewModel.findOneAndUpdate(
         {_id:reviewId, isDeleted:false}, {isDeleted:true}, {new:true})
     if(!deleteReview) return res.status(404).send({status:false, message:'No such review exists or might be already deleted'})
