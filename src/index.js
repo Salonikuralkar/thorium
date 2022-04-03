@@ -2,11 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const route = require('../src/route/route');
 const { default: mongoose } = require('mongoose');
+const multer=require('multer')
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-mongoose.connect("mongodb+srv://SaloniKuralkar:Saloni%4030@cluster0.ui8kc.mongodb.net/group12Database?retryWrites=true&w=majority", {
+app.use(multer().any())
+mongoose.connect("mongodb+srv://SaloniKuralkar:Saloni%4030@cluster0.ui8kc.mongodb.net/Saloni_Kuralkar-DB?retryWrites=true&w=majority", {
     useNewUrlParser: true
 })
     .then(() => console.log("MongoDb is connected"))
